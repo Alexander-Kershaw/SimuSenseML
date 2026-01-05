@@ -1,0 +1,9 @@
+pyspark==3.5.1
+kafka-python==2.0.2
+psycopg2-binary==2.9.9
+pandas==2.2.2
+numpy==1.26.4
+SQLAlchemy==2.0.30
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0

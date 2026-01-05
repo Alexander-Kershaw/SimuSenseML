@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+.envrc
+
+# Spark
+checkpoints/
+
+# Models (optional: comment out if you want them versioned)
+models/*.joblib
+models/*.npy
+
+# OS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
+
