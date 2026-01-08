@@ -40,7 +40,7 @@ def main():
     )
     spark.sparkContext.setLogLevel("WARN")
 
-# Read streaming data from Kafka
+    # Read streaming data from Kafka
 
     kafka_df = (
         spark.readStream.format("kafka")
@@ -50,7 +50,7 @@ def main():
         .load()
     )
 
-# Parse the JSON messages and extract fields
+    # Parse the JSON messages and extract fields
 
     parsed = (
         kafka_df
@@ -66,11 +66,11 @@ def main():
         )
     )
 
-# Define JDBC URL for Postgres
+    # Define JDBC URL for Postgres
 
     jdbc_url = f"jdbc:postgresql://{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
-# Function to write each micro-batch to Postgres
+    # write each micro-batch to Postgres
 
     def write_batch(batch_df, batch_id: int):
         print(f"\n=== BATCH {batch_id} ===")
@@ -89,7 +89,7 @@ def main():
         )
         print(f"Wrote batch {batch_id} rows={batch_df.count()}")
 
-# Set up the streaming
+    # Set up the streaming with termination exit
 
     query = (
         parsed.writeStream
@@ -98,7 +98,6 @@ def main():
         .option("checkpointLocation", "./checkpoints/kafka_to_pg_raw")
         .start()
     )
-# Await termination of the streaming query
 
     query.awaitTermination()
 

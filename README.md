@@ -181,3 +181,4 @@ streamlit run src/dashboard.py
 
 --------------------------------------------------------------------------------------------------------------------
 
+Python packages can be viewed in requirements.txt

@@ -37,7 +37,7 @@ def main():
     )
     conn.autocommit = True # enable auto-commit for streaming inserts
 
-# Create Kafka consumer
+    # Create Kafka consumer
 
     print("Connecting to Kafka...")
     consumer = KafkaConsumer(
@@ -48,7 +48,7 @@ def main():
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
     )
 
-# Prepare SQL insert statement
+    # SQL insert statement
 
     insert_sql = """
         INSERT INTO sensor_readings_raw
@@ -56,7 +56,7 @@ def main():
         VALUES (%s, %s, %s, %s, %s, %s::jsonb)
     """
 
-# Start consuming messages from Kafka and inserting into Postgres
+    # consume messages from Kafka and inserting into Postgres
 
     print("Streaming Kafka -> Postgres (raw). Press Ctrl+C to stop.")
     try:
@@ -69,7 +69,7 @@ def main():
                 vibration = float(payload["vibration"])
                 pressure = float(payload["pressure"])
 
-# Insert the reading into Postgres
+    # Insert the reading into Postgres
 
                 cur.execute(
                     insert_sql,
@@ -84,7 +84,7 @@ def main():
                 )
                 print(f"Inserted raw reading: {device_id} @ {event_ts.isoformat()}")
 
-# Handle shutdown
+    # Handle shutdown
 
     except KeyboardInterrupt:
         print("\nStopping consumer...")

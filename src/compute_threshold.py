@@ -18,13 +18,13 @@ def main():
     kmeans = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
 
-# Create database engine
+    # Create database engine
 
     engine = create_engine(
         f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     )
 
-# Retrieve recent sensor data for threshold computation
+    # Retrieve recent sensor data for threshold computation
 
     df = pd.read_sql("""
         SELECT temperature, vibration, pressure
@@ -33,21 +33,21 @@ def main():
         LIMIT 8000
     """, engine)
 
-# Prepare data and compute distances to nearest cluster center
+    # Prepare data and compute distances to nearest cluster center
 
     X = df[["temperature", "vibration", "pressure"]].to_numpy(dtype=float)
     Xs = scaler.transform(X)
 
-    centers = kmeans.cluster_centers_ # scaled space
+    centers = kmeans.cluster_centers_
     dists = np.linalg.norm(Xs[:, None, :] - centers[None, :, :], axis=2) # shape (n_samples, n_clusters)
     nearest = np.min(dists, axis=1) # distance to nearest center
 
-# choose percentile: higher = fewer anomalies
+    # choose percentile
 
-    threshold = float(np.quantile(nearest, 0.995))  # ~0.5% anomalies on training dist
+    threshold = float(np.quantile(nearest, 0.995))  #  approx 0.5% anomalies on training dist
 
-    os.makedirs("models", exist_ok=True) # ensure models dir exists
-    np.save(THRESH_PATH, np.array([threshold], dtype=float)) # save as 1D array
+    os.makedirs("models", exist_ok=True) 
+    np.save(THRESH_PATH, np.array([threshold], dtype=float))
 
     print(f"Saved {THRESH_PATH} threshold={threshold:.4f}")
 

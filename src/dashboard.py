@@ -1,9 +1,8 @@
 import sys
 from pathlib import Path
 
-# Ensure project root is in sys.path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1] # adjust as needed
+PROJECT_ROOT = Path(__file__).resolve().parents[1] 
 sys.path.append(str(PROJECT_ROOT))
 
 import time
@@ -13,7 +12,7 @@ from sqlalchemy import create_engine
 
 from src.config import POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 
-# Streamlit dashboard for monitoring anomalies in meteorological data
+# Streamlit dashboard for monitoring anomalies in simulated meteorological data
 
 st.set_page_config(page_title="Meteorological Data Streaming Anomaly Dashboard", layout="wide")
 
@@ -29,7 +28,7 @@ st.title("Meteorological Data Streaming Anomaly Dashboard")
 refresh_seconds = st.sidebar.slider("Refresh (seconds)", 1, 10, 2)
 window_rows = st.sidebar.slider("Recent rows window", 200, 5000, 1000, 200)
 
-# pick a device
+# select device from simulated (and scored) sensor readings
 devices = pd.read_sql(
     "SELECT DISTINCT device_id FROM sensor_readings_scored ORDER BY device_id;",
     engine
@@ -37,7 +36,7 @@ devices = pd.read_sql(
 
 selected_device = st.sidebar.selectbox("Device", devices if devices else ["(none yet)"])
 
-# Main dashboard loop
+# Main dashboard
 
 while True:
     totals = pd.read_sql("""
@@ -47,7 +46,7 @@ while True:
         FROM sensor_readings_scored;
     """, engine).iloc[0]
 
-# Compute metrics
+    # Compute metrics
 
     total = int(totals["total"])
     anomalies = int(totals["anomalies"] or 0)
@@ -58,7 +57,7 @@ while True:
     c2.metric("Total anomalies", anomalies)
     c3.metric("Anomaly rate", f"{rate:.2f}%")
 
-# Recent data table
+    # Recent data table
 
     recent = pd.read_sql(f"""
         SELECT device_id, event_ts, temperature, vibration, pressure,
@@ -68,9 +67,9 @@ while True:
         LIMIT {window_rows};
     """, engine)
 
-    left, right = st.columns([2, 1]) # left: 2/3, right: 1/3
+    left, right = st.columns([2, 1]) 
 
-# Left: time series for selected device
+    # Left: time series for selected device
 
     with left:
         st.subheader("Distance to centroid (selected device)")
@@ -82,7 +81,7 @@ while True:
             else:
                 st.info("No rows for this device in the current window yet.")
 
-# Right: latest anomalies
+    # Right: latest anomalies
 
     with right:
         st.subheader("Latest anomalies")
@@ -103,7 +102,7 @@ while True:
         else:
             st.info("No anomalies in the recent window (try increasing anomaly_rate).")
 
-# Pause before refreshing
+    # Pause before refreshing
 
     time.sleep(refresh_seconds)
     st.rerun()

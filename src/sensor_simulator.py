@@ -7,7 +7,6 @@ from kafka import KafkaProducer
 
 from src.config import KAFKA_BROKER, KAFKA_TOPIC
 
-# Helper functions to generate sensor readings
 
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -15,18 +14,18 @@ def now_utc_iso() -> str:
 
 def generate_normal_reading(device_id: str) -> dict:
     """
-    Normal operating ranges for sensors:
+    Normal operating ranges for simulated sensors:
       - temperature: 20–30 C (small noise)
       - vibration: 0.05–0.25 (small noise)
       - pressure: 0.95–1.05 bar (small noise)
     """
-# Generate normal readings with some noise
+    # Generate normal readings with some noise
 
     temperature = random.normalvariate(25.0, 1.2) # mean 25C, sd 1.2
     vibration = max(0.0, random.normalvariate(0.12, 0.03)) # mean 0.12, sd 0.03
     pressure = random.normalvariate(1.00, 0.02) # mean 1.00 bar, sd 0.02
 
-# Return the sensor reading message
+    # Return the sensor reading message
 
     return {
         "device_id": device_id, # unique device identifier
@@ -41,12 +40,12 @@ def generate_normal_reading(device_id: str) -> dict:
 
 def inject_anomaly(msg: dict) -> dict:
     """
-    Create anomalies by spiking one variable heavily.
+    Create anomalies by spiking one variable significantly
     """
     msg = dict(msg)  # copy to avoid mutating original
-    anomaly_type = random.choice(["temp_spike", "vibration_spike", "pressure_drop"]) # type of anomaly
+    anomaly_type = random.choice(["temp_spike", "vibration_spike", "pressure_drop"]) # type of anomaly category
 
-# Inject the anomaly based on the selected type
+    # Inject the anomaly based on the selected type
 
     if anomaly_type == "temp_spike":
         msg["temperature"] = round(msg["temperature"] + random.uniform(10, 25), 3)
@@ -62,11 +61,11 @@ def inject_anomaly(msg: dict) -> dict:
 
 def run_simulator(num_devices: int = 5, anomaly_rate: float = 0.10):
     """
-    anomaly_rate: probability any given message becomes anomalous (e.g. 0.03 = 3%)
+    anomaly_rate: probability any given message becomes anomalous 
     """
     device_ids = [f"sensor-{i:03d}" for i in range(1, num_devices + 1)] # e.g. sensor-001, sensor-002, ...
 
-# Set up Kafka producer
+    # Set up Kafka producer
 
     producer = KafkaProducer(
         bootstrap_servers=KAFKA_BROKER,
@@ -80,7 +79,7 @@ def run_simulator(num_devices: int = 5, anomaly_rate: float = 0.10):
     print(f"Anomaly rate: {anomaly_rate*100:.1f}%")
     print("Press Ctrl+C to stop.\n")
 
-# Start streaming simulated data
+    # streaming simulated data
 
     try:
         while True:
@@ -90,17 +89,17 @@ def run_simulator(num_devices: int = 5, anomaly_rate: float = 0.10):
             if random.random() < anomaly_rate:
                 msg = inject_anomaly(msg)
 
-# Send the message to Kafka
+            # Send the message to Kafka
 
             producer.send(KAFKA_TOPIC, key=device_id, value=msg)
 
             print(msg)
 
-# sleep a bit to simulate real streams
+            # sleep a bit to simulate real streams
             
             time.sleep(random.uniform(0.3, 1.2))
 
-# Handle shutdown
+    # Handle shutdown
 
     except KeyboardInterrupt:
         print("\nStopping simulator...")

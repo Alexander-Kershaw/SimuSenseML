@@ -40,13 +40,13 @@ def main():
     if not os.path.exists(MODEL_PATH) or not os.path.exists(SCALER_PATH):
         raise RuntimeError("Train first: python -m src.train_kmeans")
 
-# Load the trained KMeans model and scaler
+    # Load the trained KMeans model and scaler
 
     kmeans = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
     centers = kmeans.cluster_centers_  # scaled space
 
-# Initialize Spark session
+#    Initialize Spark session
 
     spark = (
         SparkSession.builder
@@ -63,13 +63,13 @@ def main():
 
     spark.sparkContext.setLogLevel("WARN")
 
-# Broadcast model parameters to worker nodes
+    # Broadcast model parameters to worker nodes
 
     bc_centers = spark.sparkContext.broadcast(centers)
     bc_mean = spark.sparkContext.broadcast(scaler.mean_)
     bc_scale = spark.sparkContext.broadcast(scaler.scale_)
 
-# Read streaming data from Kafka
+    # Read streaming data from Kafka
 
     kafka_df = (
         spark.readStream.format("kafka")
@@ -79,7 +79,7 @@ def main():
         .load()
     )
 
-# Parse the JSON messages and extract fields   
+    # Parse the JSON messages and extract fields   
 
     parsed = (
         kafka_df
@@ -94,46 +94,46 @@ def main():
         )
     )
 
-# Define JDBC URL for Postgres    
+    # Define JDBC URL for Postgres    
 
     jdbc_url = f"jdbc:postgresql://{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
-# Function to score each micro-batch
+    # Function to score each micro-batch
 
     def score_batch(batch_df, batch_id: int):
 
         print(f"\n=== score_batch called: batch_id={batch_id} ===")
         print(f"rows in batch_df = {batch_df.count()}")
 
-# Skip empty batches
+    # Skip the empty batches
 
         if batch_df.rdd.isEmpty():
             return
 
-# Collect batch data to driver for scoring
+        # Collect batch data to driver for scoring
 
         pdf = batch_df.toPandas()
         X = pdf[["temperature", "vibration", "pressure"]].to_numpy(dtype=float)
 
-# Standardize using saved scaler parameters
+        # Standardize using saved scaler parameters
         
         Xs = (X - bc_mean.value) / bc_scale.value
 
-# Compute distances to cluster centers and assign cluster IDs
+        # Compute distances to cluster centers and assign cluster IDs
 
         centers_local = bc_centers.value
         dists = np.linalg.norm(Xs[:, None, :] - centers_local[None, :, :], axis=2)
         cluster_id = np.argmin(dists, axis=1)
         dist_to_centroid = dists[np.arange(len(dists)), cluster_id]
 
-# Load threshold for anomaly detection
+        # Load threshold for anomaly detection
 
         threshold = float(np.load("models/threshold.npy")[0])
         is_anomaly = dist_to_centroid > threshold
 
         print(f"Using threshold={threshold:.4f}")
 
-# Append scoring results to the DataFrame
+        # Append scoring results to the DataFrame
 
         pdf["temp_z"] = Xs[:, 0]
         pdf["vib_z"] = Xs[:, 1]
@@ -142,13 +142,13 @@ def main():
         pdf["distance_to_centroid"] = dist_to_centroid.astype(float)
         pdf["is_anomaly"] = is_anomaly.astype(bool)
 
-# Convert back to Spark DataFrame
+        # Convert back to Spark DataFrame
 
         out_df = spark.createDataFrame(pdf)
 
         out_df.show(5, truncate=False)
 
-# Write scored results to Postgres
+        # Write scored results to Postgres
 
         (
             out_df.write
@@ -167,7 +167,7 @@ def main():
             f"anomalies={int(is_anomaly.sum())} threshold={threshold:.3f}"
         )
 
-# Set up the streaming query to score incoming data
+    # Set up the streaming query to score incoming data
 
     query = (
         parsed.writeStream
@@ -176,8 +176,6 @@ def main():
         .option("checkpointLocation", "./checkpoints/kmeans_score")
         .start()
     )
-
-# Await termination of the streaming query
 
     query.awaitTermination()
 
